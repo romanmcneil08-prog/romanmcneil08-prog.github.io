@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Roman McNeil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600&family=Courier+Prime:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --bg:#0D0807;--bg2:#160D0B;--bg3:#1F1410;--bg4:#2A1B16;
+  --ink:#F2E8DC;--ink2:#C4AFA0;--ink3:#7A6860;--ink4:#3D2E28;
+  --maroon:#8B2635;--maroon2:#B03A4A;--maroon3:#5A1825;--maroon4:#2D0C12;
+  --gold:#C4933F;--gold2:#E8B870;
+  --teal:#3A8A9E;--teal2:#5AAFC5;
+  --rule:rgba(242,232,220,0.08);--rule2:rgba(242,232,220,0.15);
+  --serif:'Fraunces',Georgia,serif;--sans:'Outfit',sans-serif;--mono:'Courier Prime',monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;opacity:.2;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E")}
+
+.sticky-tag{position:fixed;top:0;left:0;right:0;z-index:500;padding:10px 56px;
+  background:rgba(13,8,7,0.93);backdrop-filter:blur(16px);border-bottom:0.5px solid var(--rule2);
+  display:flex;justify-content:space-between;align-items:center;
+  opacity:0;transform:translateY(-100%);transition:opacity .4s ease,transform .4s ease;pointer-events:none}
+.sticky-tag.show{opacity:1;transform:translateY(0);pointer-events:auto}
+/* nav pushed down when sticky shows */
+nav{transition:top .4s ease}
+.sticky-tagline{font-family:var(--serif);font-size:15px;font-style:italic;color:var(--ink2)}
+.sticky-cta{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--maroon2);text-decoration:none;transition:color .2s}
+.sticky-cta:hover{color:var(--gold2)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;
+  padding:18px 56px;background:rgba(13,8,7,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule)}
+.nav-brand{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.nav-brand span{color:var(--maroon2);font-style:italic}
+.nav-links{display:flex;gap:36px;list-style:none}
+.nav-links a{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--maroon2)}
+
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+  padding:120px 56px 80px;position:relative;overflow:hidden;background:var(--bg);color:var(--ink)}
+.hero-bg-circle{position:absolute;width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(139,38,53,.1) 0%,transparent 70%);top:-80px;right:-80px;pointer-events:none}
+.hero-bg-circle2{position:absolute;width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(196,147,63,.06) 0%,transparent 70%);bottom:80px;left:160px;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;color:var(--maroon2);letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hero-tag::before{content:'';width:28px;height:1px;background:var(--maroon);flex-shrink:0}
+.hero-name{font-family:var(--serif);font-size:clamp(42px,6vw,76px);font-weight:400;
+  line-height:1;letter-spacing:-.02em;color:var(--ink);margin-bottom:14px;white-space:nowrap}
+.hero-title{font-family:var(--sans);font-size:clamp(11px,1.3vw,14px);font-weight:400;
+  color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;line-height:2}
+.hero-statement{max-width:620px;font-family:var(--serif);font-size:clamp(17px,1.9vw,23px);
+  font-weight:300;font-style:italic;line-height:1.6;color:var(--ink2);margin-bottom:44px;
+  border-left:2px solid var(--maroon3);padding-left:20px}
+.hero-statement em{color:var(--gold2);font-style:normal}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 26px;
+  font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;text-decoration:none;transition:all .2s;cursor:pointer;border:none}
+.btn-primary{background:var(--maroon);color:var(--ink)}
+.btn-primary:hover{background:var(--maroon2);transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--ink2);border:1px solid var(--ink4)}
+.btn-ghost:hover{border-color:var(--maroon);color:var(--maroon2);transform:translateY(-2px)}
+
+.stats{padding:40px 56px 80px;background:var(--bg);color:var(--ink)}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.stat-card{background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);
+  padding:24px 18px;text-align:center;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--maroon3);transition:background .2s}
+.stat-card:hover{background:var(--bg3);border-color:var(--maroon3)}
+.stat-card:hover::before{background:var(--maroon2)}
+.stat-icon{font-size:20px;margin-bottom:8px;display:block}
+.stat-num{font-family:var(--serif);font-size:34px;font-weight:400;color:var(--maroon2);line-height:1;margin-bottom:6px}
+.stat-label{font-size:11px;color:var(--ink3);line-height:1.5;font-weight:400}
+.stat-sub{font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.06em;margin-top:4px}
+
+section{padding:80px 56px}
+.sec-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--maroon2);margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.sec-eyebrow::after{content:'';flex:1;max-width:40px;height:1px;background:var(--maroon);opacity:.5}
+.sec-title{font-family:var(--serif);font-size:clamp(30px,4vw,50px);font-weight:400;
+  line-height:1.1;letter-spacing:-.02em;margin-bottom:48px}
+.sec-title em{font-style:italic;color:var(--maroon2)}
+
+.approach-section{background:var(--bg2)}
+.approach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.approach-card{background:var(--bg3);border:1px solid var(--rule);border-radius:var(--r);
+  padding:26px;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
+.approach-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--maroon4);transition:background .3s}
+.approach-card:hover{background:var(--bg4);border-color:var(--maroon3)}
+.approach-card:hover::after{background:var(--maroon2)}
+.approach-n{font-family:var(--serif);font-size:44px;font-weight:300;color:var(--maroon2);line-height:1;margin-bottom:12px;opacity:.55}
+.approach-title{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--ink);margin-bottom:10px}
+.approach-desc{font-size:13px;color:var(--ink2);line-height:1.8}
+.approach-desc em{color:var(--ink);font-style:italic}
+
+.pullquote{background:var(--bg3);border-radius:10px;padding:48px 52px 40px;margin:60px 0;position:relative;overflow:hidden}
+.pullquote::before{content:'C';font-family:var(--serif);font-size:96px;color:var(--maroon3);
+  position:absolute;top:-8px;left:22px;line-height:1}
+.pullquote p{font-family:var(--serif);font-size:clamp(18px,2vw,24px);font-weight:300;
+  font-style:italic;color:var(--ink);line-height:1.55;padding-left:28px;position:relative;z-index:1}
+.pullquote cite{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  color:var(--ink3);text-transform:uppercase;margin-top:14px;padding-left:28px;position:relative;z-index:1}
+
+.skills-section{background:var(--bg3)}
+.skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.skill-group-title{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--ink);margin-bottom:18px}
+.skill-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.skill-tag{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink2);border:1px solid var(--ink4);padding:7px 14px;border-radius:4px;
+  transition:border-color .2s,color .2s,background .2s;cursor:default}
+.skill-tag:hover{border-color:var(--maroon2);color:var(--maroon2);background:var(--maroon4)}
+.skill-tag.featured{border-color:var(--maroon3);color:var(--maroon2)}
+
+.lang-visual{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+.lang-card{background:var(--bg);border:1px solid var(--rule);border-radius:var(--r);
+  padding:14px 8px;text-align:center;transition:border-color .2s}
+.lang-card:hover{border-color:var(--maroon)}
+.lang-flag-wrap{height:30px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.lang-name{font-family:var(--serif);font-size:13px;font-weight:400;color:var(--ink);margin-bottom:2px}
+.lang-level{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--maroon2)}
+.lang-dots{display:flex;gap:3px;justify-content:center;margin-top:5px}
+.lang-dot{width:5px;height:5px;border-radius:50%;background:var(--bg4)}
+.lang-dot.on{background:var(--maroon2)}
+
+.tools-wrap{margin-top:28px}
+#tools-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+
+.map-section{background:var(--bg2);padding:80px 56px}
+#program-map{width:100%;height:400px;border-radius:var(--r);overflow:hidden;border:1px solid var(--rule2)}
+.map-legend{display:flex;gap:24px;margin-top:18px;justify-content:center;flex-wrap:wrap}
+.map-leg-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3)}
+.map-leg-dot{width:10px;height:10px;border-radius:50%}
+
+.timeline-section{background:var(--bg)}
+.timeline{position:relative;padding-left:40px}
+.timeline::before{content:'';position:absolute;left:12px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(to bottom,var(--maroon3),transparent)}
+.tl-item{position:relative;margin-bottom:0;opacity:0;transform:translateX(-12px);transition:opacity .5s ease,transform .5s ease}
+.tl-item.visible{opacity:1;transform:translateX(0)}
+.tl-dot{position:absolute;left:-34px;top:34px;width:14px;height:14px;border-radius:50%;
+  background:var(--maroon2);border:2px solid var(--bg);box-shadow:0 0 0 3px var(--maroon4)}
+.tl-dot.warm{background:var(--gold2)}
+.tl-header{padding:26px 0;border-bottom:0.5px solid var(--rule);cursor:pointer;
+  display:flex;align-items:flex-start;gap:16px}
+.tl-main{flex:1}
+.tl-date{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--maroon2);margin-bottom:4px}
+.tl-title{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--ink);margin-bottom:4px}
+.tl-org{font-size:12px;color:var(--ink3);margin-bottom:8px}
+.tl-desc{font-size:13px;color:var(--ink2);line-height:1.75;max-width:580px}
+.tl-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tl-tag{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--maroon2);border:1px solid var(--maroon4);padding:3px 9px;border-radius:3px}
+.tl-expand{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em;
+  text-transform:uppercase;flex-shrink:0;transition:color .2s;padding-top:4px;white-space:nowrap}
+.tl-header:hover .tl-expand{color:var(--maroon2)}
+.tl-item.open .tl-expand{color:var(--maroon2)}
+
+.case-body{display:none;padding:24px 0 28px;border-bottom:0.5px solid var(--rule)}
+.tl-item.open .case-body{display:block}
+.case-lede{font-family:var(--serif);font-size:16px;font-weight:300;font-style:italic;
+  color:var(--ink2);line-height:1.6;margin-bottom:20px;padding-bottom:16px;border-bottom:0.5px solid var(--rule)}
+.case-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 36px;margin-bottom:16px}
+.case-field-label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--maroon2);margin-bottom:6px}
+.case-field-text{font-size:13px;color:var(--ink2);line-height:1.8}
+.case-field-text ul{list-style:none;padding:0}
+.case-field-text ul li{margin-bottom:5px;padding-left:14px;position:relative}
+.case-field-text ul li::before{content:'\2192';position:absolute;left:0;color:var(--maroon);font-size:11px}
+.signal{background:var(--bg2);border-left:2px solid var(--gold);padding:14px 18px;border-radius:0 var(--r) var(--r) 0}
+.signal .case-field-text{font-style:italic}
+
+.contact-section{background:var(--bg3)}
+.contact-split{display:grid;grid-template-columns:1.2fr 1fr;gap:80px;align-items:center}
+.contact-big{font-family:var(--serif);font-size:clamp(34px,4.5vw,60px);font-weight:400;line-height:1.05;color:var(--ink);margin-bottom:20px}
+.contact-big em{color:var(--maroon2);font-style:italic}
+.contact-note{font-size:14px;color:var(--ink2);line-height:1.8;max-width:400px;margin-bottom:28px}
+.contact-fields{display:flex;flex-direction:column;gap:22px}
+.cf-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--maroon2);margin-bottom:4px}
+.cf-val{font-size:15px;color:var(--ink)}
+.cf-val a{color:var(--maroon2);text-decoration:none;transition:color .2s}
+.cf-val a:hover{color:var(--gold2)}
+
+footer{padding:28px 56px;border-top:1px solid var(--rule);display:flex;
+  justify-content:space-between;align-items:center;background:var(--bg);flex-wrap:wrap;gap:12px}
+.footer-left{display:flex;flex-direction:column;gap:5px}
+.footer-name{font-family:var(--serif);font-size:16px;font-weight:300;color:var(--ink2)}
+.footer-copy{font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.07em}
+.footer-right{font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.07em}
+
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero>*{opacity:0;animation:fadeUp .7s ease forwards}
+.hero-tag{animation-delay:.1s}.hero-name{animation-delay:.25s}.hero-title{animation-delay:.35s}
+.hero-statement{animation-delay:.45s}.hero-actions{animation-delay:.55s}
+
+.leaflet-container{background:var(--bg2) !important;font-family:var(--sans) !important}
+
+@media(max-width:1000px){
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+  .skills-grid{grid-template-columns:1fr}
+  .approach-grid{grid-template-columns:1fr 1fr}
+  .contact-split{grid-template-columns:1fr;gap:48px}
+  .case-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  nav,.sticky-tag{padding:16px 24px}
+  section,.stats,.map-section,.timeline-section,.approach-section,.contact-section{padding:60px 24px}
+  .hero{padding:100px 24px 60px}
+  .hero-name{white-space:normal;font-size:48px}
+  .stats{padding:0 24px 60px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .approach-grid{grid-template-columns:1fr}
+  .lang-visual{grid-template-columns:repeat(3,1fr)}
+  footer{flex-direction:column;gap:8px;text-align:center;padding:20px 24px}
+}
+</style>
+</head>
+<body>
+
+<div class="sticky-tag" id="stickyTag">
+  <span class="sticky-tagline">Let's build something that matters.</span>
+  <div style="display:flex;gap:20px;align-items:center">
+    <a href="resume.pdf" class="sticky-cta">R&eacute;sum&eacute; &darr;</a>
+    <a href="mailto:roman.mcneil.08@gmail.com?subject=Let%27s%20talk" class="sticky-cta">Get in touch &rarr;</a>
+  </div>
+</div>
+
+<nav>
+  <a href="#" class="nav-brand">Roman <span>McNeil</span></a>
+  <ul class="nav-links">
+    <li><a href="#approach">Approach</a></li>
+    <li><a href="#skills">Capabilities</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<section class="hero" id="hero">
+  <div class="hero-bg-circle"></div>
+  <div class="hero-bg-circle2"></div>
+  <div class="hero-name">Roman McNeil</div>
+  <div class="hero-title">Program Manager &middot; Learning Systems &middot; AI Governance &middot; 4 Languages</div>
+  <div class="hero-tag" style="margin-top:18px;margin-bottom:32px">Washington D.C. Metro &middot; Open to Remote &middot; Open to Travel</div>
+  <div class="hero-statement">
+    Most program managers run what already exists.<br>
+    I build what <em>doesn't exist yet</em> &mdash; across languages, borders, and institutions that have never worked together before.
+  </div>
+  <div class="hero-actions">
+    <a href="#work" class="btn btn-primary">See the work &darr;</a>
+    <a href="resume.pdf" class="btn btn-ghost">Download r&eacute;sum&eacute;</a>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stats-grid">
+    <div class="stat-card reveal">
+      <span class="stat-icon">&#128483;</span>
+      <div class="stat-num">4</div>
+      <div class="stat-label">Working languages</div>
+      <div class="stat-sub">EN &middot; ES &middot; FR &middot; PT</div>
+    </div>
+    <div class="stat-card reveal">
+      <span class="stat-icon">&#128220;</span>
+      <div class="stat-num" style="font-size:14px;line-height:1.5;margin-top:4px">CAPM<br>TESOL<br>TEYL</div>
+      <div class="stat-label">Professional certifications</div>
+      <div class="stat-sub">PMI &middot; ITTT</div>
+    </div>
+    <div class="stat-card reveal">
+      <span class="stat-icon">&#127758;</span>
+      <div class="stat-num">116+</div>
+      <div class="stat-label">Scholars, fellows &amp; mentors supported</div>
+      <div class="stat-sub">ECISF &middot; LEARN &middot; LSR Pathway</div>
+    </div>
+    <div class="stat-card reveal">
+      <span class="stat-icon">&#127881;</span>
+      <div class="stat-num">4,496</div>
+      <div class="stat-label">Attendees reached at SRCD 2025 Biennial</div>
+      <div class="stat-sub">63 countries</div>
+    </div>
+    <div class="stat-card reveal">
+      <span class="stat-icon">&#129302;</span>
+      <div class="stat-num" style="font-size:18px;margin-top:4px">2024</div>
+      <div class="stat-label">AI governance policy adopted institution-wide</div>
+      <div class="stat-sub">SRCD GenAI Policy</div>
+    </div>
+  </div>
+</div>
+
+<section class="approach-section" id="approach">
+  <div class="sec-eyebrow">Operating Style</div>
+  <div class="sec-title">How I <em>actually work</em></div>
+  <div class="approach-grid">
+    <div class="approach-card reveal">
+      <div class="approach-n">01</div>
+      <div class="approach-title">I build the infrastructure</div>
+      <div class="approach-desc">When a program has no blueprint, I don't wait for one. I design the systems, recruit the people, write the documentation, and build the workflows &mdash; <em>so what didn't exist yesterday is operational by next quarter.</em></div>
+    </div>
+    <div class="approach-card reveal">
+      <div class="approach-n">02</div>
+      <div class="approach-title">I hold complexity without dropping it</div>
+      <div class="approach-desc">Concurrent programs, overlapping stakeholders, moving deadlines. I think in systems &mdash; <em>tracking how pieces connect before they collide, and tightening the seams others miss.</em></div>
+    </div>
+    <div class="approach-card reveal">
+      <div class="approach-n">03</div>
+      <div class="approach-title">I diagnose in real time</div>
+      <div class="approach-desc">Programs reveal their gaps mid-flight. I don't wait for the retrospective &mdash; <em>I spot what's breaking, design a fix, and ship it before the problem compounds.</em></div>
+    </div>
+    <div class="approach-card reveal">
+      <div class="approach-n">04</div>
+      <div class="approach-title">Cross-cultural fluency is my default mode</div>
+      <div class="approach-desc">Four working languages. Work across multiple world regions. I design programs knowing <em>what actually derails global delivery culturally</em> &mdash; and build against those failure points from day one.</div>
+    </div>
+    <div class="approach-card reveal">
+      <div class="approach-n">05</div>
+      <div class="approach-title">I move at the speed the work demands</div>
+      <div class="approach-desc">Grant cycles don't pause. Launches don't slide. I plan against the timeline I have, not the one I'd prefer &mdash; <em>and I'm accountable for outcomes, not activity.</em></div>
+    </div>
+    <div class="approach-card reveal" style="background:var(--maroon4);border-color:var(--maroon3)">
+      <div class="approach-n" style="color:var(--maroon3);opacity:.4">&rarr;</div>
+      <div class="approach-title" style="color:var(--maroon2)">The work I was made for doesn't have a job title yet</div>
+      <div class="approach-desc" style="color:var(--ink2)">Program architecture for research ecosystems that don't exist yet. AI governance where the stakes are real. Multilingual access as infrastructure, not afterthought. Global scholar pipelines in places the field hasn't reached. <em style="color:var(--gold2);font-style:normal">I'm not looking for a lane &mdash; I'm building one.</em></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding:0 56px;background:var(--bg)">
+  <div class="pullquote reveal">
+    <p>I've never managed a program that had a template. Every single one I've built &mdash; the infrastructure, the onboarding, the recovery plan when things went sideways &mdash; I made from scratch. That's not a limitation. That's the job.</p>
+    <cite>&mdash; Roman McNeil</cite>
+  </div>
+</section>
+
+<section class="skills-section" id="skills">
+  <div class="sec-eyebrow">Capabilities</div>
+  <div class="sec-title">What I'm <em>built for</em></div>
+  <div class="skills-grid">
+    <div>
+      <div class="skill-group-title">Program &amp; Operations</div>
+      <div class="skill-tags reveal">
+        <span class="skill-tag featured">Global Program Management</span>
+        <span class="skill-tag featured">Sole-Owner Program Delivery</span>
+        <span class="skill-tag featured">Grant-Funded Program Management</span>
+        <span class="skill-tag">Fellowship &amp; Mentorship Design</span>
+        <span class="skill-tag">Cross-Institutional Partnerships</span>
+        <span class="skill-tag">Strategic Planning</span>
+        <span class="skill-tag">Event &amp; Conference Management</span>
+        <span class="skill-tag">Stakeholder Engagement</span>
+      </div>
+      <div class="skill-group-title">Learning &amp; Content</div>
+      <div class="skill-tags reveal">
+        <span class="skill-tag featured">Instructional Design</span>
+        <span class="skill-tag">Asynchronous Course Development</span>
+        <span class="skill-tag">ID RFP &amp; Vendor Management</span>
+        <span class="skill-tag">TESOL Methodology</span>
+        <span class="skill-tag">Mentor Training Program Design</span>
+        <span class="skill-tag">LMS Platforms</span>
+      </div>
+      <div class="skill-group-title">AI, Equity &amp; Global</div>
+      <div class="skill-tags reveal">
+        <span class="skill-tag featured">AI Governance &amp; Policy</span>
+        <span class="skill-tag featured">Equity-Centered Systems Design</span>
+        <span class="skill-tag">Multilingual Program Delivery</span>
+        <span class="skill-tag">Cross-Cultural Research Partnerships</span>
+        <span class="skill-tag">Majority World Capacity-Building</span>
+        <span class="skill-tag">Scholarly Publishing Operations</span>
+        <span class="skill-tag">Research Dissemination</span>
+      </div>
+      <div class="tools-wrap">
+        <div class="skill-group-title">Tools &amp; Systems</div>
+        <div id="tools-list"></div>
+      </div>
+    </div>
+    <div>
+      <div class="skill-group-title">Languages</div>
+      <div class="lang-visual">
+        <div class="lang-card reveal">
+          <div class="lang-flag-wrap">
+            <div style="font-size:28px;line-height:1">&#127760;</div>
+          </div>
+          <div class="lang-name">English</div>
+          <div class="lang-level">Native</div>
+          <div class="lang-dots">
+            <div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div>
+          </div>
+        </div>
+        <div class="lang-card reveal">
+          <div class="lang-flag-wrap">
+            <svg width="42" height="28" viewBox="0 0 42 28" style="border-radius:2px;display:block">
+              <rect width="42" height="28" fill="#CE1126"/>
+              <rect y="5.6" width="42" height="5.6" fill="white"/>
+              <rect y="16.8" width="42" height="5.6" fill="white"/>
+              <polygon points="0,0 21,14 0,28" fill="#0F6BB0"/>
+              <polygon points="7,10 8.4,14 12.2,14 9.1,16.2 10.2,20.2 7,18 3.8,20.2 4.9,16.2 1.8,14 5.6,14" fill="white"/>
+            </svg>
+          </div>
+          <div class="lang-name">Spanish</div>
+          <div class="lang-level">Professional</div>
+          <div class="lang-dots">
+            <div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot"></div>
+          </div>
+        </div>
+        <div class="lang-card reveal">
+          <div class="lang-flag-wrap">
+            <svg width="42" height="28" viewBox="0 0 42 28" style="border-radius:2px;display:block">
+              <rect width="14" height="28" fill="#0055A4"/>
+              <rect x="14" width="14" height="28" fill="white"/>
+              <rect x="28" width="14" height="28" fill="#EF4135"/>
+            </svg>
+          </div>
+          <div class="lang-name">French</div>
+          <div class="lang-level">Professional</div>
+          <div class="lang-dots">
+            <div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot"></div>
+          </div>
+        </div>
+        <div class="lang-card reveal">
+          <div class="lang-flag-wrap">
+            <svg width="42" height="28" viewBox="0 0 42 28" style="border-radius:2px;display:block">
+              <rect width="42" height="28" fill="#009B3A"/>
+              <polygon points="21,2 40,14 21,26 2,14" fill="#FEDF00"/>
+              <circle cx="21" cy="14" r="7" fill="#002776"/>
+              <path d="M14.5,14 Q21,9.5 27.5,14" stroke="white" stroke-width="1.2" fill="none" opacity=".7"/>
+            </svg>
+          </div>
+          <div class="lang-name">Portuguese</div>
+          <div class="lang-level">Professional</div>
+          <div class="lang-dots">
+            <div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot on"></div><div class="lang-dot"></div>
+          </div>
+        </div>
+        <div class="lang-card reveal">
+          <div class="lang-flag-wrap">
+            <svg width="42" height="28" viewBox="0 0 42 28" style="border-radius:2px;display:block">
+              <rect width="42" height="9.3" fill="black"/>
+              <rect y="9.3" width="42" height="9.4" fill="white"/>
+              <rect y="18.7" width="42" height="9.3" fill="#009736"/>
+              <polygon points="0,0 18,14 0,28" fill="#CE1126"/>
+            </svg>
+          </div>
+          <div class="lang-name">Arabic</div>
+          <div class="lang-level">Developing</div>
+          <div class="lang-dots">
+            <div class="lang-dot on"></div><div class="lang-dot"></div><div class="lang-dot"></div><div class="lang-dot"></div><div class="lang-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="map-section" id="reach">
+  <div class="sec-eyebrow">Global Reach</div>
+  <div class="sec-title">Where the <em>work lives</em></div>
+  <div id="program-map"></div>
+  <div class="map-legend">
+    <div class="map-leg-item"><div class="map-leg-dot" style="background:#B03A4A"></div>Program delivery</div>
+    <div class="map-leg-item"><div class="map-leg-dot" style="background:#E8B870"></div>Home base</div>
+    <div class="map-leg-item"><div class="map-leg-dot" style="background:#5AAFC5"></div>Conference &amp; events</div>
+  </div>
+</section>
+
+<section class="timeline-section" id="work">
+  <div class="sec-eyebrow">Program History</div>
+  <div class="sec-title">The work, <em>in detail</em></div>
+  <p style="font-size:13px;color:var(--ink3);margin-bottom:32px;margin-top:-24px">Click any entry to expand the full case study.</p>
+  <div class="timeline">
+
+    <div class="tl-item" id="t1">
+      <div class="tl-dot"></div>
+      <div class="tl-header" onclick="toggleTL('t1')">
+        <div class="tl-main">
+          <div class="tl-date">2024 &ndash; Present</div>
+          <div class="tl-title">AI Governance, Policy &amp; Public Programming</div>
+          <div class="tl-org">Society for Research in Child Development</div>
+          <div class="tl-desc">Co-developed SRCD's Generative AI Policy (adopted August 2024) governing authorship, disclosure, and peer review integrity across all four journals &mdash; then translated the policy into a multi-year public research agenda through interdisciplinary AI webinars reaching 300+ registrants.</div>
+          <div class="tl-tags"><span class="tl-tag">AI Policy</span><span class="tl-tag">Research Ethics</span><span class="tl-tag">Public Programming</span><span class="tl-tag">Governance</span></div>
+        </div>
+        <div class="tl-expand">+ Expand</div>
+      </div>
+      <div class="case-body">
+        <div class="case-lede">Not just drafting the policy &mdash; operationalizing it. Turning SRCD's position on AI into living governance and a public scholarly record the field can build on.</div>
+        <div class="case-grid">
+          <div><div class="case-field-label">The situation</div><div class="case-field-text">As generative AI reshaped scholarly publishing and research, SRCD needed both a formal governance framework and a public-facing research agenda. Translating a rapidly moving, contested landscape into actionable policy across disciplines, career stages, and global contexts.</div></div>
+          <div><div class="case-field-label">My role</div><div class="case-field-text">Co-developer of SRCD's Generative AI Policy (adopted by Governing Council, August 2024). Staff liaison for the interdisciplinary AI programming series &mdash; 2024 through 2026 and continuing.</div></div>
+          <div><div class="case-field-label">What I actually did</div><div class="case-field-text"><ul>
+            <li>Co-developed SRCD's AI policy: authorship standards, disclosure requirements, hallucination risk, IP &mdash; governing all four journals since August 2024</li>
+            <li>Organized the 2024 webinar <em>Is Technology Good or Bad for Child Development?</em> &mdash; 300+ registrants, September 2024</li>
+            <li>Coordinating the May 2026 webinar <em>Advancing Research on AI and Child Development</em> &mdash; algorithmic bias, digital equity, inclusive design, globally underrepresented populations</li>
+            <li>Connecting policy to programming: ensuring the field has both the governance framework and the research agenda to engage AI responsibly</li>
+          </ul></div></div>
+          <div><div class="case-field-label">What came out of it</div><div class="case-field-text">SRCD AI Policy live across all publications since August 2024. A connected interdisciplinary webinar series building the field's public scholarly record on AI ethics, equity, and child development.</div></div>
+        </div>
+        <div class="signal"><div class="case-field-label">What this signals</div><div class="case-field-text">Operational AI governance experience where getting it wrong has real consequences &mdash; not theoretical, not adjacent. Paired with public programming that shows the policy isn't paperwork; it's a framework the field is actively building on.</div></div>
+      </div>
+    </div>
+
+    <div class="tl-item" id="t2">
+      <div class="tl-dot warm"></div>
+      <div class="tl-header" onclick="toggleTL('t2')">
+        <div class="tl-main">
+          <div class="tl-date">2024 &ndash; Present</div>
+          <div class="tl-title">Language-Sensitive Review (LSR) Pathway</div>
+          <div class="tl-org">SRCD &middot; Robert Wood Johnson Foundation &middot; Oxford University Press</div>
+          <div class="tl-desc">Architected a first-of-its-kind, grant-funded equity intervention in scholarly peer review for Spanish- and Chinese-speaking researchers &mdash; from project charter through ScholarOne workflow configuration, a 35-member bilingual reviewer pool, and full OUP platform launch.</div>
+          <div class="tl-tags"><span class="tl-tag">Equity</span><span class="tl-tag">Grant-Funded</span><span class="tl-tag">Systems Design</span><span class="tl-tag">OUP</span></div>
+        </div>
+        <div class="tl-expand">+ Expand</div>
+      </div>
+      <div class="case-body">
+        <div class="case-lede">Designing a structural equity intervention in peer review with no precedent &mdash; from grant to implementation, inside a major publisher's submission infrastructure.</div>
+        <div class="case-grid">
+          <div><div class="case-field-label">The situation</div><div class="case-field-text">Spanish- and Chinese-speaking researchers face structural barriers at the peer review stage of scholarly publishing. SRCD needed a program that addressed the problem at the workflow level &mdash; not just aspirationally &mdash; with Robert Wood Johnson Foundation funding and Oxford University Press as the implementation partner.</div></div>
+          <div><div class="case-field-label">My role</div><div class="case-field-text">Program architect. Owned the full lifecycle from grant to live pilot: project charter, ScholarOne configuration, reviewer pool recruitment, member communications, survey instruments, and editorial onboarding.</div></div>
+          <div><div class="case-field-label">What I actually did</div><div class="case-field-text"><ul>
+            <li>Authored the project charter and led ScholarOne workflow configuration with OUP's submissions systems team</li>
+            <li>Recruited and tiered a 35-member bilingual reviewer pool (Spanish and Chinese)</li>
+            <li>Developed member-facing communications, survey instruments, and editorial onboarding materials</li>
+            <li>Piloted as a novel workflow configuration inside ScholarOne's editor-side infrastructure &mdash; a first for the platform</li>
+            <li>Targeted <em>Child Development</em> and <em>Child Development Perspectives</em> as pilot journals</li>
+          </ul></div></div>
+          <div><div class="case-field-label">What came out of it</div><div class="case-field-text">A live, grant-funded equity pilot embedded in OUP's submission infrastructure. First-of-its-kind workflow configuration in ScholarOne. Operational infrastructure positioned for expansion to additional journals and language communities.</div></div>
+        </div>
+        <div class="signal"><div class="case-field-label">What this signals</div><div class="case-field-text">Grant-to-implementation program architecture. The ability to translate an equity commitment into a technical workflow, a funded program structure, and a live operational system &mdash; inside a major academic publisher's infrastructure.</div></div>
+      </div>
+    </div>
+
+    <div class="tl-item" id="t3">
+      <div class="tl-dot"></div>
+      <div class="tl-header" onclick="toggleTL('t3')">
+        <div class="tl-main">
+          <div class="tl-date">2024 &ndash; Present</div>
+          <div class="tl-title">LEARN Global Mentorship Program</div>
+          <div class="tl-org">SRCD &middot; Jacobs Foundation &middot; Ghana &amp; Colombia</div>
+          <div class="tl-desc">Built a $100,000 CHF, two-country mentorship program from zero &mdash; 18 scholars, 25 mentors, two streams, six institutional partners. Diagnosed and remediated engagement gaps mid-cycle. Instructional design RFP now in scope for three async professional development courses.</div>
+          <div class="tl-tags"><span class="tl-tag">Global Programs</span><span class="tl-tag">Grant-Funded</span><span class="tl-tag">Capacity-Building</span><span class="tl-tag">Multi-Country</span></div>
+        </div>
+        <div class="tl-expand">+ Expand</div>
+      </div>
+      <div class="case-body">
+        <div class="case-lede">Building a two-country mentorship program from zero &mdash; no blueprint, no prior infrastructure, a $100,000 CHF Jacobs Foundation grant, two continents, one program manager.</div>
+        <div class="case-grid">
+          <div><div class="case-field-label">The situation</div><div class="case-field-text">Launch across Ghana and Colombia simultaneously &mdash; partner onboarding, mentor recruitment, programming, and full operational systems &mdash; with no existing delivery infrastructure, cascading timelines, and grant-aligned deliverable requirements.</div></div>
+          <div><div class="case-field-label">My role</div><div class="case-field-text">Program lead. Owned every phase: infrastructure buildout, partner coordination across NYU, ISSBD, Reviewer Zero, Universidad de los Andes, and the University of Cape Coast &mdash; through scholar development, communications, and real-time adaptation.</div></div>
+          <div><div class="case-field-label">What I actually did</div><div class="case-field-text"><ul>
+            <li>Built delivery infrastructure and communications with six institutional partners across four countries</li>
+            <li>Recruited and onboarded 25 mentors: 15 methodological + 10 scholarly publishing/peer review</li>
+            <li>Ran the full mentor application, review, and tailored onboarding process for two streams</li>
+            <li>Delivered three country-specific Peer Review 101 seminars + a Scholars&ndash;Mentors Networking Session</li>
+            <li>Diagnosed engagement gap mid-cycle and built a structured Networking Session to close it</li>
+            <li>Currently scoping three async professional development courses via instructional-design RFP</li>
+          </ul></div></div>
+          <div><div class="case-field-label">What came out of it</div><div class="case-field-text">Fully operational two-stream program. 18 scholars. 25 mentors. Two countries. Six partners. Grant-aligned delivery. Mid-cycle engagement gap identified and closed. Three async courses in active development.</div></div>
+        </div>
+        <div class="signal"><div class="case-field-label">What this signals</div><div class="case-field-text">Building global infrastructure from zero, managing multi-partner coordination across countries and institutions, adapting when implementation reveals gaps &mdash; and moving into instructional design as the program matures.</div></div>
+      </div>
+    </div>
+
+    <div class="tl-item" id="t4">
+      <div class="tl-dot"></div>
+      <div class="tl-header" onclick="toggleTL('t4')">
+        <div class="tl-main">
+          <div class="tl-date">2023 &ndash; Present</div>
+          <div class="tl-title">Scholarly Publications Operations &amp; Wiley-to-OUP Transition</div>
+          <div class="tl-org">Child Development &middot; CDP &middot; Monographs &middot; Child Policy Nexus</div>
+          <div class="tl-desc">Operations lead for four concurrent journals through a full publisher transition from Wiley to Oxford University Press. 2025 output: 147 articles in Child Development alone &mdash; +7% YoY against a 36% submission surge to 1,741 manuscripts.</div>
+          <div class="tl-tags"><span class="tl-tag">Operations</span><span class="tl-tag">Publishing</span><span class="tl-tag">Multi-Journal</span><span class="tl-tag">OUP Transition</span></div>
+        </div>
+        <div class="tl-expand">+ Expand</div>
+      </div>
+      <div class="case-body">
+        <div class="case-lede">Four journals. One full publisher transition. 147 articles published in a single year against a 36% surge in submissions. Zero missed issues.</div>
+        <div class="case-grid">
+          <div><div class="case-field-label">The situation</div><div class="case-field-text">Sustain publication cycles across four journals through the complete Wiley-to-OUP transition &mdash; new workflows, editor onboarding across five editorial teams, a journal rebrand (Social Policy Report to Child Policy Nexus), a new co-editor model, and post-transition stabilization all running simultaneously.</div></div>
+          <div><div class="case-field-label">My role</div><div class="case-field-text">Operations lead for all four publications: production oversight, vendor coordination, editor onboarding, transition management, and press/media dissemination.</div></div>
+          <div><div class="case-field-label">What I actually did</div><div class="case-field-text"><ul>
+            <li>Managed production timelines and coordination across four journals through the full Wiley-to-OUP transition</li>
+            <li>Onboarded editorial teams across five editor roles and a new co-editor model</li>
+            <li>Identified, documented, and refined post-transition processes during the first full year under OUP</li>
+            <li>Managed the Child Policy Nexus rebrand and OUP platform launch</li>
+            <li>Coordinated press and media dissemination for high-visibility research outputs</li>
+          </ul></div></div>
+          <div><div class="case-field-label">What came out of it</div><div class="case-field-text">147 articles published in Child Development in 2025 (+7% YoY) against 1,741 submitted manuscripts (+36%). Consistent cycles maintained through institutional change. Post-transition process documentation built for long-term OUP stability.</div></div>
+        </div>
+        <div class="signal"><div class="case-field-label">What this signals</div><div class="case-field-text">High-detail, multi-project operations management under sustained pressure &mdash; holding four systems in parallel through a major publisher transition while output actually increased year-over-year.</div></div>
+      </div>
+    </div>
+
+    <div class="tl-item" id="t5">
+      <div class="tl-dot"></div>
+      <div class="tl-header" onclick="toggleTL('t5')">
+        <div class="tl-main">
+          <div class="tl-date">2023, 2025, 2026</div>
+          <div class="tl-title">ECISF Fellowship &mdash; 3 Cohorts, Sole Program Manager</div>
+          <div class="tl-org">Society for Research in Child Development</div>
+          <div class="tl-desc">Sole program manager for three full fellowship cohorts &mdash; 38 fellows and mentors across medicine, law, linguistics, and allied disciplines. Designed the program, ran it, iterated it between cycles, and added formal mentor-matching infrastructure starting in 2025.</div>
+          <div class="tl-tags"><span class="tl-tag">Fellowship Management</span><span class="tl-tag">Program Design</span><span class="tl-tag">Sole PM</span><span class="tl-tag">Iteration</span></div>
+        </div>
+        <div class="tl-expand">+ Expand</div>
+      </div>
+      <div class="case-body">
+        <div class="case-lede">Solo program managing a competitive interdisciplinary fellowship across three full cohort cycles &mdash; and redesigning it between them because the program needed to evolve.</div>
+        <div class="case-grid">
+          <div><div class="case-field-label">The situation</div><div class="case-field-text">Run the full lifecycle of a competitive fellowship &mdash; solo &mdash; across three cycles. After 2023, I identified the program needed a formal mentorship layer. So I built one for 2025 and carried it into 2026.</div></div>
+          <div><div class="case-field-label">My role</div><div class="case-field-text">Sole program manager for all three cycles. Every aspect of design, recruitment, selection, onboarding, mentor matching, programming, and public communications &mdash; mine, across all three cohorts.</div></div>
+          <div><div class="case-field-label">What I actually did</div><div class="case-field-text"><ul>
+            <li><strong>2023:</strong> 7 fellows + 7 mentors. Full programming across medicine, criminal justice, early childhood policy, AI/education, psychiatry, public health, and occupational science</li>
+            <li><strong>2025:</strong> Redesigned to add formal mentor pairing &mdash; 6 fellows + 6 mentors recruited and onboarded from scratch</li>
+            <li><strong>2026:</strong> Third consecutive cohort &mdash; 6 fellows + 6 mentors &mdash; with refined onboarding and programming built on two prior cycles</li>
+            <li>Maintained full institutional knowledge as the only consistent staff member across all three cycles</li>
+          </ul></div></div>
+          <div><div class="case-field-label">What came out of it</div><div class="case-field-text">38 fellows and mentors supported across three cohorts. Zero support staff. A more sophisticated program model each year &mdash; designed, built, iterated, and owned by one person.</div></div>
+        </div>
+        <div class="signal"><div class="case-field-label">What this signals</div><div class="case-field-text">This is program ownership &mdash; not coordination. Three cycles, one PM, zero templates. The 2026 cohort is running on infrastructure I built from nothing in 2023.</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="background:var(--bg3);padding:80px 56px">
+  <div class="sec-eyebrow">Public Programming</div>
+  <div class="sec-title">Webinars <em>organized</em></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <a href="https://www.srcd.org/event/developmental-adaptation-rapidly-changing-contexts-envisioning-next-decade-interdisciplinary" target="_blank" style="text-decoration:none;background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);padding:22px 24px;transition:border-color .2s,background .2s;display:block" onmouseover="this.style.borderColor='var(--maroon3)';this.style.background='var(--bg4)'" onmouseout="this.style.borderColor='var(--rule)';this.style.background='var(--bg2)'">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--maroon2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">SRCD &middot; Interdisciplinary</div>
+      <div style="font-family:var(--serif);font-size:17px;font-weight:400;color:var(--ink);line-height:1.35;margin-bottom:6px">Developmental Adaptation in Rapidly Changing Contexts</div>
+      <div style="font-size:12px;color:var(--ink3);line-height:1.6">Envisioning the next decade of interdisciplinary developmental science.</div>
+    </a>
+    <a href="https://www.srcd.org/event/transformational-research-developmental-science-navigating-shifting-contexts" target="_blank" style="text-decoration:none;background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);padding:22px 24px;transition:border-color .2s,background .2s;display:block" onmouseover="this.style.borderColor='var(--maroon3)';this.style.background='var(--bg4)'" onmouseout="this.style.borderColor='var(--rule)';this.style.background='var(--bg2)'">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--maroon2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">SRCD &middot; Research Methods</div>
+      <div style="font-family:var(--serif);font-size:17px;font-weight:400;color:var(--ink);line-height:1.35;margin-bottom:6px">Transformational Research in Developmental Science</div>
+      <div style="font-size:12px;color:var(--ink3);line-height:1.6">Navigating shifting research contexts across the field.</div>
+    </a>
+    <a href="https://www.srcd.org/event/teaching-research-methods-why-quantcrit-matters-socially-just-developmental-science" target="_blank" style="text-decoration:none;background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);padding:22px 24px;transition:border-color .2s,background .2s;display:block" onmouseover="this.style.borderColor='var(--maroon3)';this.style.background='var(--bg4)'" onmouseout="this.style.borderColor='var(--rule)';this.style.background='var(--bg2)'">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--maroon2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">SRCD &middot; Methods &amp; Equity</div>
+      <div style="font-family:var(--serif);font-size:17px;font-weight:400;color:var(--ink);line-height:1.35;margin-bottom:6px">Teaching Research Methods: Why QuantCrit Matters</div>
+      <div style="font-size:12px;color:var(--ink3);line-height:1.6">Socially just developmental science in research training.</div>
+    </a>
+    <a href="https://www.srcd.org/event/advancing-research-ai-and-child-development-interactive-discussion-priority-questions-methods" target="_blank" style="text-decoration:none;background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);padding:22px 24px;transition:border-color .2s,background .2s;display:block" onmouseover="this.style.borderColor='var(--maroon3)';this.style.background='var(--bg4)'" onmouseout="this.style.borderColor='var(--rule)';this.style.background='var(--bg2)'">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--maroon2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">SRCD &middot; AI &amp; Ethics &middot; May 2026</div>
+      <div style="font-family:var(--serif);font-size:17px;font-weight:400;color:var(--ink);line-height:1.35;margin-bottom:6px">Advancing Research on AI and Child Development</div>
+      <div style="font-size:12px;color:var(--ink3);line-height:1.6">Interactive discussion &mdash; priority questions, methods, equity, and policy.</div>
+    </a>
+  </div>
+</section>
+
+<section class="contact-section" id="contact">
+  <div class="contact-split">
+    <div>
+      <div class="contact-big">Let's build<br>something <em>that matters.</em></div>
+      <p class="contact-note">Open to senior program management, learning systems, and AI governance roles &mdash; remote-first, global context preferred.</p>
+      <div class="hero-actions">
+        <a href="resume.pdf" class="btn btn-primary">Download r&eacute;sum&eacute;</a>
+        <a href="mailto:roman.mcneil.08@gmail.com" class="btn btn-ghost">Send a message</a>
+      </div>
+    </div>
+    <div class="contact-fields">
+      <div><div class="cf-label">Email</div><div class="cf-val"><a href="mailto:roman.mcneil.08@gmail.com">roman.mcneil.08@gmail.com</a></div></div>
+      <div><div class="cf-label">LinkedIn</div><div class="cf-val"><a href="https://linkedin.com/in/drmcneil" target="_blank">linkedin.com/in/drmcneil</a></div></div>
+      <div><div class="cf-label">Location</div><div class="cf-val">Washington D.C. Metro &middot; Remote &middot; Open to Travel</div></div>
+      <div><div class="cf-label">Currently building</div><div class="cf-val" style="color:var(--ink2);font-size:13px">PM &amp; ID portfolio assets &middot; LSR Pathway expansion &middot; ECISF 2026 cohort delivery</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">
+    <div class="footer-name">Roman McNeil</div>
+    <div class="footer-copy">&copy; 2026</div>
+  </div>
+  <div class="footer-right">CAPM &middot; TESOL &middot; TEYL &middot; Program &amp; Operations Manager</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const tools=['Asana (Org-Wide Lead)','ScholarOne','OpenWater','OUP Editorial Platforms','Salesforce','Google Workspace','MS Office/Teams','SurveyMonkey','Canva','Adobe CC','WordPress','Zoom','LMS Platforms','Articulate 360'];
+const tl=document.getElementById('tools-list');
+tools.forEach(t=>{
+  const s=document.createElement('span');
+  s.textContent=t;
+  s.style.cssText='font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--maroon2);border:1px solid var(--maroon4);padding:5px 11px;border-radius:3px;text-transform:uppercase;transition:border-color .2s,color .2s;cursor:default';
+  s.addEventListener('mouseenter',()=>{s.style.borderColor='var(--maroon2)';s.style.color='var(--gold2)'});
+  s.addEventListener('mouseleave',()=>{s.style.borderColor='var(--maroon4)';s.style.color='var(--maroon2)'});
+  tl.appendChild(s);
+});
+
+if(typeof L==='undefined'){
+  document.getElementById('program-map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink3);font-family:var(--mono);font-size:12px;letter-spacing:.08em">Map loads when opened in browser with internet access</div>';
+}else{
+  const map=L.map('program-map',{center:[15,0],zoom:2,zoomControl:true,scrollWheelZoom:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+  function mkIcon(color){
+    return L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:'+color+';border-radius:50%;border:2px solid #0D0807;box-shadow:0 0 0 4px '+color+'44;"></div>',iconSize:[13,13],iconAnchor:[6,6],popupAnchor:[0,-8]});
+  }
+  [
+    {lat:38.9,lng:-77.0,label:'Washington D.C.',sub:'Home base',color:'#E8B870'},
+    {lat:7.9,lng:-1.0,label:'Ghana',sub:'LEARN &mdash; program delivery',color:'#B03A4A'},
+    {lat:4.7,lng:-74.1,label:'Colombia',sub:'LEARN &mdash; program delivery',color:'#B03A4A'},
+    {lat:52.1,lng:5.1,label:'Utrecht, Netherlands',sub:'2026 Global Forum on Development, Health &amp; Rights',color:'#5AAFC5'},
+    {lat:8.9,lng:-79.5,label:'Panama City',sub:'Anti-Racist Developmental Science Summit 2024',color:'#5AAFC5'},
+    {lat:40.8,lng:-111.9,label:'Salt Lake City',sub:'SRCD Biennial',color:'#5AAFC5'},
+    {lat:44.98,lng:-93.27,label:'Minneapolis',sub:'SRCD Biennial',color:'#5AAFC5'},
+    {lat:33.75,lng:-84.39,label:'Atlanta',sub:'SRCD Biennial 2027 &mdash; upcoming',color:'#5AAFC5'},
+  ].forEach(p=>{
+    L.marker([p.lat,p.lng],{icon:mkIcon(p.color)}).addTo(map).bindPopup('<strong>'+p.label+'</strong><br><span style="color:#7A6860;font-size:12px">'+p.sub+'</span>');
+  });
+  const ps=document.createElement('style');
+  ps.textContent='.leaflet-popup-content-wrapper{background:#1F1410;border:1px solid rgba(242,232,220,0.15);border-radius:6px;color:#F2E8DC;font-family:Outfit,sans-serif}.leaflet-popup-content{margin:10px 14px;font-size:13px;color:#F2E8DC}.leaflet-popup-tip{background:#1F1410}.leaflet-popup-close-button{color:#7A6860!important}';
+  document.head.appendChild(ps);
+}
+
+function toggleTL(id){
+  const el=document.getElementById(id);
+  const open=el.classList.contains('open');
+  document.querySelectorAll('.tl-item').forEach(i=>{i.classList.remove('open');const e=i.querySelector('.tl-expand');if(e)e.textContent='+ Expand';});
+  if(!open){el.classList.add('open');const e=el.querySelector('.tl-expand');if(e)e.textContent='- Close';}
+}
+
+const heroEl=document.getElementById('hero');
+const sTag=document.getElementById('stickyTag');
+const stickyObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    const nav = document.querySelector('nav');
+    if(!e.isIntersecting){
+      sTag.classList.add('show');
+      if(nav) nav.style.top = sTag.offsetHeight + 'px';
+    } else {
+      sTag.classList.remove('show');
+      if(nav) nav.style.top = '0';
+    }
+  });
+},{threshold:0.05});
+stickyObs.observe(heroEl);
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');obs.unobserve(e.target);
+      const bar=e.target.querySelector('.skill-bar-fill');
+      if(bar)setTimeout(()=>{bar.style.width=bar.dataset.w+'%'},100);
+    }
+  });
+},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+const tlObs=new IntersectionObserver(entries=>{
+  entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*100);tlObs.unobserve(e.target);}});
+},{threshold:0.1});
+document.querySelectorAll('.tl-item').forEach(el=>tlObs.observe(el));
+
+// skill bars removed
+</script>
+</body>
+</html>
